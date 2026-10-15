@@ -65,3 +65,4 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 - [2026-10-15] The first version reaches main through pull request https://github.com/WeiLieh/SGDataAPI/pull/1 (claude/affectionate-mayer-1ywuap → main), opened from the Claude Code UI.
 - [2026-10-15] PR #1 was merged into main on 2026-10-15 and production is live, so from now on the branch + pull request workflow below applies to every change.
 - [2026-10-15] After the first Vercel production deploy, every change goes on a branch with a pull request into main, merged only when `npm run check` passes, the Vercel preview deploy is green, and the owner has tested the preview. Merge as soon as a finished task meets those three conditions.
+- [2026-10-15] Watching pull requests: when a Claude session watches a PR for the owner (Vercel checks, review comments, merge conflicts), it notifies the owner of each problem and asks before pushing any fix. It never fixes on its own.
