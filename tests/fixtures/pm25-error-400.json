@@ -1,0 +1,6 @@
+{
+  "code": 4,
+  "name": "ERROR_PARAMS",
+  "data": null,
+  "errorMsg": "Invalid date format. Date format must be YYYY-MM-DD (2024-06-01) or YYYY-MM-DDTHH:mm:ss (2024-06-01T08:30:00)."
+}
