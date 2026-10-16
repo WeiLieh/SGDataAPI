@@ -11,13 +11,27 @@ export interface Pm25Band {
   min: number;
   /** Inclusive upper bound; null for the open-ended top band. */
   max: number | null;
+  /** NEA health recommendation for this band. */
+  recommendation: string;
 }
 
 export const PM25_BANDS: readonly Pm25Band[] = [
-  { band: "I", label: "Normal", min: 0, max: 55 },
-  { band: "II", label: "Elevated", min: 56, max: 150 },
-  { band: "III", label: "High", min: 151, max: 250 },
-  { band: "IV", label: "Very High", min: 251, max: null },
+  { band: "I", label: "Normal", min: 0, max: 55, recommendation: "Continue with normal activities." },
+  {
+    band: "II",
+    label: "Elevated",
+    min: 56,
+    max: 150,
+    recommendation: "Reduce strenuous outdoor physical exertion.",
+  },
+  { band: "III", label: "High", min: 151, max: 250, recommendation: "Avoid strenuous outdoor activity." },
+  {
+    band: "IV",
+    label: "Very High",
+    min: 251,
+    max: null,
+    recommendation: "Minimise or avoid all outdoor activities.",
+  },
 ];
 
 /** The band of a 1-hour PM2.5 reading; null for no reading (never treated as 0) or an invalid value. */

@@ -15,6 +15,15 @@ describe("NEA 1-hour PM2.5 bands", () => {
     expect(pm25Band(value)).toMatchObject({ band, label });
   });
 
+  it.each([
+    [40, "Continue with normal activities."],
+    [100, "Reduce strenuous outdoor physical exertion."],
+    [200, "Avoid strenuous outdoor activity."],
+    [300, "Minimise or avoid all outdoor activities."],
+  ])("%i µg/m³ carries NEA's recommendation", (value, recommendation) => {
+    expect(pm25Band(value)?.recommendation).toBe(recommendation);
+  });
+
   it("gives no band to a missing reading", () => {
     expect(pm25Band(null)).toBeNull();
     expect(pm25Band(-1)).toBeNull();
