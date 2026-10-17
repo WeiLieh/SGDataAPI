@@ -6,7 +6,7 @@
   --card-soft: rgba(255, 255, 255, 0.82);
   --island: #1c9cf6;
   --island-edge: #19c3fb;
-  --dot: #1559c4;
+  --dot-color: #1559c4;
   --toggle: #fffae0;
   --toggle-active: #1d71f2;
   --toggle-active-text: #ffffff;
@@ -35,7 +35,7 @@
     --card-soft: rgba(255, 255, 255, 0.8);
     --island: #13489a;
     --island-edge: #1c9cf6;
-    --dot: #0b2452;
+    --dot-color: #0b2452;
     --toggle: #1b2a44;
     --toggle-active: #1d71f2;
     --toggle-active-text: #ffffff;
@@ -276,11 +276,18 @@ button {
   cursor: pointer;
 }
 
-/* Region card */
-.region-map svg {
-  display: block;
+/* Region card: the island is SVG; each region is an HTML button positioned over it. */
+.map-canvas {
+  position: relative;
   width: 100%;
-  height: auto;
+}
+
+.island-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .island {
@@ -290,108 +297,89 @@ button {
 }
 
 .region {
+  --dot: 36px;
+  position: absolute;
+  /* Centre the circle (not the whole button) on the region's point. */
+  transform: translate(-50%, calc(var(--dot) / -2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
   cursor: pointer;
-  outline: none;
-  /* No grey tap square in iOS Safari. */
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.region .hit {
-  fill: transparent;
+.region.selected {
+  --dot: 42px;
 }
 
 .region .dot {
-  fill: var(--dot);
-  stroke-width: 4;
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--dot-bg);
+  border: 4px solid var(--ring);
+  box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
 }
 
-.region.tone-green .dot {
-  stroke: var(--green);
+.region {
+  --dot-bg: var(--dot-color);
+  --ring: var(--none);
 }
 
-.region.tone-yellow .dot {
-  stroke: var(--yellow);
+.region.tone-green {
+  --ring: var(--green);
 }
 
-.region.tone-red .dot {
-  stroke: var(--red);
+.region.tone-yellow {
+  --ring: var(--yellow);
 }
 
-.region.tone-none .dot {
-  stroke: var(--none);
+.region.tone-red {
+  --ring: var(--red);
 }
 
 .region.selected .dot {
-  stroke: #ffffff;
-  stroke-width: 3;
-}
-
-.region.selected.tone-green .dot {
-  fill: var(--green);
+  border: 3px solid #ffffff;
+  background: var(--ring);
 }
 
 .region.selected.tone-yellow .dot {
-  fill: var(--yellow);
-}
-
-.region.selected.tone-red .dot {
-  fill: var(--red);
-}
-
-.region.selected.tone-none .dot {
-  fill: var(--none);
-}
-
-.region text {
-  text-anchor: middle;
-  fill: #ffffff;
-  font-weight: 700;
-}
-
-.region .value {
-  font-size: 13px;
-}
-
-.region.selected.tone-yellow .value {
-  fill: var(--on-yellow);
+  color: var(--on-yellow);
 }
 
 .region .name {
   font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.06em;
-}
-
-/* Label and pill are always in the page; only their visibility changes with the selection. */
-.region .name-pill {
-  opacity: 0;
-}
-
-.region.selected .name-pill {
-  opacity: 1;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #ffffff;
 }
 
 .region.selected .name {
-  opacity: 0;
+  background: #ffffff;
+  color: #1d71f2;
 }
 
-.region .name-pill rect {
-  fill: #ffffff;
+.region:focus-visible {
+  outline: none;
 }
 
-.region .name-pill text {
-  fill: #1d71f2;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-}
-
-.region:focus-visible .hit {
-  stroke: #ffffff;
-  stroke-width: 2;
-  stroke-dasharray: 4 3;
+.region:focus-visible .dot {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
 }
 
 .unplaced {

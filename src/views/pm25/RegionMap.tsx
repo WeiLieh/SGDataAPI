@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from "react";
 import type { Pm25Region } from "../../../shared/datasets/pm25";
 import { pm25Band } from "../../../shared/datasets/pm25-bands";
 import { bandTone } from "../../lib/colors";
@@ -62,54 +61,42 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
     return value === null ? `${region.name}: no reading` : `${region.name}: ${value} ${unit}, ${band?.label ?? ""}`;
   };
 
-  const onKey = (event: KeyboardEvent, id: string) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect(id);
-    }
-  };
-
   return (
     <div className="region-map">
-      <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} role="group" aria-label="Singapore regions">
-        <path className="island" d={ISLAND_PATH} />
+      {/*
+        Only the island is SVG. Each region is an HTML button placed over it: iOS Safari did not
+        reliably repaint SVG <text> after a tap (numbers and names went blank), while HTML text
+        and buttons render consistently and are natively tappable and keyboard-accessible.
+      */}
+      <div className="map-canvas" role="group" aria-label="Singapore regions" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
+        <svg className="island-svg" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} aria-hidden="true">
+          <path className="island" d={ISLAND_PATH} />
+        </svg>
         {placed.map((region) => {
           const { x, y } = project(region.longitude!, region.latitude!);
           const value = values[region.id] ?? null;
           const tone = bandTone(pm25Band(value));
           const isSelected = region.id === selected;
           return (
-            <g
+            <button
               key={region.id}
+              type="button"
               className={`region tone-${tone}${isSelected ? " selected" : ""}`}
-              transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}
-              role="button"
-              tabIndex={0}
+              style={{ left: `${((x / VIEW_W) * 100).toFixed(2)}%`, top: `${((y / VIEW_H) * 100).toFixed(2)}%` }}
               aria-pressed={isSelected}
               aria-label={describe(region)}
               onClick={() => onSelect(region.id)}
-              onKeyDown={(event) => onKey(event, region.id)}
             >
-              <circle className="hit" r={30} />
-              <circle className="dot" r={isSelected ? 21 : 18} />
-              <text className="value" dy="0.35em">
+              <span className="dot" aria-hidden="true">
                 {value === null ? "—" : value}
-              </text>
-              {/*
-                Both the plain label and the pill stay in the page; CSS shows one or the other.
-                Inserting and removing them on each tap left the text unpainted in iOS Safari.
-              */}
-              <text className="name" y={33} dy="0.35em" aria-hidden="true">
+              </span>
+              <span className="name" aria-hidden="true">
                 {region.name.toUpperCase()}
-              </text>
-              <g className="name-pill" transform="translate(0 33)" aria-hidden="true">
-                <rect x={-28} y={-9} width={56} height={18} rx={9} />
-                <text dy="0.35em">{region.name.toUpperCase()}</text>
-              </g>
-            </g>
+              </span>
+            </button>
           );
         })}
-      </svg>
+      </div>
       {unplaced.length > 0 && (
         <div className="unplaced">
           {unplaced.map((region) => (
