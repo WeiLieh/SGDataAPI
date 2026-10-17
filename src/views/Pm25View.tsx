@@ -69,6 +69,7 @@ export function Pm25View() {
         <section className="card regions">
           {data && latest && !state.error ? (
             <>
+              <p className="hint">Tap any region to focus</p>
               <RegionMap
                 regions={regions}
                 values={latest.values}
@@ -77,7 +78,6 @@ export function Pm25View() {
                 unit={data.unit}
               />
               <div className="map-footer">
-                <span className="hint">Tap any region to focus</span>
                 <Legend />
               </div>
               <button

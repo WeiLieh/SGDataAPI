@@ -1,6 +1,7 @@
 /* Colours and layout from the UI entries of 2026-10-16 in Context.md (owner's palette). */
 :root {
-  --page: #e3f4fe;
+  /* Light grey page, like the owner's banking-app reference. */
+  --page: #f2f3f5;
   --card: #1d71f2;
   /* Cards: gradient from the palette's deep blue to its mid blue. */
   --card-from: #1d71f2;
@@ -293,8 +294,7 @@ button {
   color: var(--on-accent);
   font-weight: 600;
   padding: 9px 24px;
-  /* Keeps the blue button distinct on the blue gradient cards. */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 2px 6px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   cursor: pointer;
 }
 
@@ -438,11 +438,18 @@ button {
   color: #1d71f2;
 }
 
+.hint {
+  margin: 0 0 4px;
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
 .map-footer {
   --card-soft: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
@@ -473,7 +480,6 @@ button {
 
 .swatch.tone-green {
   background: var(--green);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .swatch.tone-yellow {
