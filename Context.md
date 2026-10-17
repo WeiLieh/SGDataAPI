@@ -43,6 +43,9 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 
 - [2026-10-16] pm25 health recommendations (owner's table, confirmed by the owner as following NEA; haze.gov.sg could not be checked from the cloud session): Normal "Continue with normal activities."; Elevated "Reduce strenuous outdoor physical exertion."; High "Avoid strenuous outdoor activity."; Very High "Minimise or avoid all outdoor activities." They live with the bands in shared/datasets/pm25-bands.ts.
 
+- [2026-10-17] psi (context from the owner; not built yet) — "Pollutant Standards Index (PSI)", agency National Environment Agency (NEA), dataset ID d_fe37906a0182569d891506e815e819b7, dataset page https://data.gov.sg/datasets?query=psi&resultId=d_fe37906a0182569d891506e815e819b7, endpoint GET https://api-open.data.gov.sg/v2/real-time/api/psi. Same real-time family as pm25: optional date (YYYY-MM-DD for a whole SGT day, YYYY-MM-DDTHH:mm:ss for the latest at that moment), paginationToken only with a date, optional x-api-key, and the same 400 (code 4 ERROR_PARAMS), 404 (code 17 REAL_TIME_API_DATA_NOT_FOUND) and 429 (code 24 TOO_MANY_REQUESTS) errors. The owner's OpenAPI spec gives the exact errorMsg texts: "Invalid date format. Date format must be YYYY-MM-DD (2024-06-01) or YYYY-MM-DDTHH:mm:ss (2024-06-01T08:30:00).", "Invalid pagination token.", "Data not found", "Rate limit exceeded".
+- [2026-10-17] psi real response (owner's sample of 2026-10-17, timestamp 20:00 SGT): same shape as pm25 (data.regionMetadata with lowercase names and label coordinates; items[] with date, timestamp, updatedTimestamp in SGT with offset), with twelve readings per region under items[].readings: psi_twenty_four_hourly, pm25_twenty_four_hourly, pm10_twenty_four_hourly, so2_twenty_four_hourly, no2_one_hour_max, co_eight_hour_max, o3_eight_hour_max, and the sub-indices co_sub_index, o3_sub_index, pm10_sub_index, pm25_sub_index, so2_sub_index. The spec also lists psi_three_hourly, which the real response does not contain, and shows "West" capitalised; the owner confirmed the real response wins over the spec, as for pm25.
+
 ## UI
 
 - [2026-10-15] No look and feel is set yet. Layout, styling, fonts, colours, components, screen features and on-screen wording are designed later through the owner's prompts, each recorded here with the change that builds it. Until the first such entry, the app is one plain, unstyled PM2.5 screen listing each region's latest reading with its timestamp and updatedTimestamp, read from /api/data. No styling library. (superseded [2026-10-16], see below)
@@ -83,6 +86,8 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 
 - [2026-10-17] The owner is happy with the UI as merged in PR #5 (production commit 48cc450) for now. Next planned work: PSI functionality, built from the PSI table and colours saved above, as its own dataset from data.gov.sg's real-time PSI feed (never derived from PM2.5).
 
+- [2026-10-17] PSI feature requested by the owner (spec still being agreed; nothing built): a new feature giving the latest PSI information, shown when the PSI tab of the PM2.5 | PSI toggle is tapped (the tab stops being permanently disabled). To start, the PSI screen is a single plain screen with no aesthetic UI elements: the data loaded into plain, unstyled HTML. Wherever it applies, error handling is the same as for PM2.5.
+
 ## Decisions
 
 - [2026-10-15] App name: SG Weather. Mobile-first Vite + React + TypeScript web app plus two Vercel serverless functions. Read-only: no database, login, analytics or cookies.
@@ -94,6 +99,8 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 - [2026-10-15] Upstream statuses the brief does not name (e.g. 401, 403, other 4xx) are answered like 5xx: 502 "data.gov.sg returned HTTP <status>.", since the fault is upstream, not in the client's request.
 - [2026-10-15] Success replies: 200 { ok: true, dataset, params, source: { name, agency, datasetId, datasetPage, endpoint }, fetchedAt, data } with Cache-Control: public, s-maxage=<cacheSeconds>, stale-while-revalidate=<cacheSeconds>. Failures: { ok: false, dataset, error: { status, upstreamStatus, upstreamCode, upstreamName, message } } with Cache-Control: no-store. Every reply is JSON (application/json; charset=utf-8) with X-Content-Type-Options: nosniff. Server logs: one line per failure, never the key or request headers.
 - [2026-10-15] /api/health calls the PM2.5 latest endpoint once with a 5-second timeout and answers { ok, checkedAt, keyConfigured, upstream: { endpoint, status, code, latencyMs, latestTimestamp, message }, datasets }, 200 when data.gov.sg answered with valid data, 503 otherwise, Cache-Control: no-store.
+
+- [2026-10-17] Test fixtures to be made more accurate (owner's instruction): the pm25 error fixtures (400, 404, 429) take data.gov.sg's real errorMsg texts from the OpenAPI spec the owner supplied, replacing the wording that was guessed on 2026-10-15.
 
 ## Git & Release Workflow
 
