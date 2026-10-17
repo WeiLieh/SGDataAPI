@@ -2,6 +2,8 @@
 
 A mobile-first web app that shows Singapore's **1-hour PM2.5 concentration by region** (central, north, south, east, west), read live from data.gov.sg by the app's own server code. This is the 1-hour PM2.5 concentration in µg/m³. It is **not** the 24-hour PSI.
 
+The screen shows the selected region's reading with NEA's band and health recommendation, and a tappable map of the five regions. The region you pick, by tapping or with "Use my location", is remembered on your phone; only its name is stored, never a reading, and your position never leaves the phone. Data re-fetches every 5 minutes, when you come back to the page, and on Refresh. The design is recorded under "UI" in `Context.md`.
+
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 
 The brief is in `MasterPrompt.md`. Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
