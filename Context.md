@@ -129,3 +129,4 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 - [2026-10-17] After testing commit b3f8e6e on the iPhone preview, the owner asked to merge the branch into main.
 - [2026-10-17] The owner asked to open a pull request for the UI polish (KnownIssues.md, polish rounds 1–6) and merge it into main; the owner's request stands in for the "owner has tested the preview" condition, while npm run check and a green Vercel preview still apply.
 - [2026-10-17] At the owner's request, PSI work is on an intuitively named branch, feature/psi-screen (pushing branches other than the session branch works in this cloud session). It started from the session branch, so it also carries the Context.md records not yet in main.
+- [2026-10-17] The owner does not want the PSI work merged into main yet: the PSI screen gets its UI design on feature/psi-screen first, and only then goes to main through a pull request.
