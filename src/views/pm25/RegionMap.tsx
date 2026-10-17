@@ -3,50 +3,56 @@ import { pm25Band } from "../../../shared/datasets/pm25-bands";
 import { bandTone } from "../../lib/colors";
 
 /**
- * Stylised outline of Singapore island as [longitude, latitude] points (owner approved a
- * stylised shape, not an accurate coastline). Decoration only: no reading comes from here.
+ * Outline of Singapore island traced from the owner's reference drawing (2026-10-17), in that
+ * drawing's own coordinates (about 2:1 wide). Decoration only: no reading comes from here.
  */
 const ISLAND: Array<[number, number]> = [
-  [103.605, 1.335], [103.625, 1.365], [103.655, 1.395], [103.69, 1.425], [103.73, 1.445],
-  [103.77, 1.452], [103.81, 1.468], [103.84, 1.455], [103.87, 1.432], [103.905, 1.42],
-  [103.945, 1.41], [103.985, 1.392], [104.025, 1.375], [104.045, 1.35], [104.03, 1.325],
-  [103.99, 1.318], [103.955, 1.305], [103.915, 1.292], [103.88, 1.275], [103.855, 1.252],
-  [103.82, 1.236], [103.785, 1.25], [103.755, 1.275], [103.72, 1.292], [103.685, 1.3],
-  [103.65, 1.298], [103.62, 1.31],
+  [455, 40], [515, 44], [575, 63], [630, 90], [690, 122], [745, 150], [815, 172], [868, 184],
+  [900, 196], [910, 210], [882, 255], [845, 300], [797, 338], [745, 352], [690, 358], [645, 375],
+  [600, 405], [565, 428], [545, 450], [530, 457], [503, 460], [447, 459], [420, 452], [405, 435],
+  [388, 408], [340, 384], [285, 372], [235, 366], [135, 370], [93, 358], [77, 327], [87, 292],
+  [155, 197], [165, 152], [177, 128], [205, 102], [233, 85], [255, 81], [305, 87], [355, 80],
+  [420, 50],
 ];
 
-const VIEW_W = 360;
+/** Drawing coordinates of the island's corners: west, east, north and south edges. */
+const ISLAND_BOX = { left: 77, right: 910, top: 40, bottom: 460 };
+/** The same edges in longitude and latitude, used to place the regions on the drawing. */
+const GEO_BOX = { west: 103.605, east: 104.045, north: 1.47, south: 1.215 };
 
-/** Equal-ish scale east-west, stretched 1.5× north-south. */
-function project(longitude: number, latitude: number): { x: number; y: number } {
-  return { x: 10 + (longitude - 103.59) * 720, y: 10 + (1.475 - latitude) * 1080 };
+/** Regions are spread around Central so the circles and names never overlap each other. */
+const SPREAD = { x: 1.45, y: 2.3 };
+/** Room above and below the island for circles that spill past it (owner: that is fine). */
+const MARGIN = { x: 15, top: 110, bottom: 135 };
+
+const VIEW_W = ISLAND_BOX.right - ISLAND_BOX.left + 2 * MARGIN.x;
+const VIEW_H = ISLAND_BOX.bottom - ISLAND_BOX.top + MARGIN.top + MARGIN.bottom;
+
+/** An island drawing point in viewBox units. */
+function drawingPoint(x: number, y: number): { x: number; y: number } {
+  return { x: x - ISLAND_BOX.left + MARGIN.x, y: y - ISLAND_BOX.top + MARGIN.top };
 }
 
-/** Where the map is spread from: Central's label point. */
-const MAP_CENTRE = project(103.82, 1.35735);
-
-/**
- * The whole map (island and regions) is spread 1.1× east-west and 1.4× north-south around
- * Central, so the larger circles and their names do not overlap and stay inside the island.
- */
-function spread(longitude: number, latitude: number): { x: number; y: number } {
-  const { x, y } = project(longitude, latitude);
-  return { x: MAP_CENTRE.x + (x - MAP_CENTRE.x) * 1.1, y: MAP_CENTRE.y + (y - MAP_CENTRE.y) * 1.4 };
+/** Longitude and latitude to drawing coordinates, without spreading. */
+function geoToDrawing(longitude: number, latitude: number): { x: number; y: number } {
+  const fx = (longitude - GEO_BOX.west) / (GEO_BOX.east - GEO_BOX.west);
+  const fy = (GEO_BOX.north - latitude) / (GEO_BOX.north - GEO_BOX.south);
+  return {
+    x: ISLAND_BOX.left + fx * (ISLAND_BOX.right - ISLAND_BOX.left),
+    y: ISLAND_BOX.top + fy * (ISLAND_BOX.bottom - ISLAND_BOX.top),
+  };
 }
 
-/** Vertical extent of the spread island, plus a margin, so the drawing fits its box exactly. */
-const ISLAND_YS = ISLAND.map(([lon, lat]) => spread(lon, lat).y);
-const TOP = Math.min(...ISLAND_YS) - 10;
-const VIEW_H = Math.max(...ISLAND_YS) + 10 - TOP;
+const CENTRE = geoToDrawing(103.82, 1.35735);
 
-/** A map point in viewBox units, after spreading and shifting below the top margin. */
+/** A region's position in viewBox units: its true place, spread out from Central. */
 function mapPoint(longitude: number, latitude: number): { x: number; y: number } {
-  const { x, y } = spread(longitude, latitude);
-  return { x, y: y - TOP };
+  const { x, y } = geoToDrawing(longitude, latitude);
+  return drawingPoint(CENTRE.x + (x - CENTRE.x) * SPREAD.x, CENTRE.y + (y - CENTRE.y) * SPREAD.y);
 }
 
 function islandPath(): string {
-  const points = ISLAND.map(([lon, lat]) => mapPoint(lon, lat));
+  const points = ISLAND.map(([x, y]) => drawingPoint(x, y));
   // Smooth the outline with quadratic curves through midpoints.
   const mid = (a: { x: number; y: number }, b: { x: number; y: number }) => ({
     x: (a.x + b.x) / 2,
