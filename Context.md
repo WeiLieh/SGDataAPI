@@ -20,6 +20,7 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 - [2026-10-15] Owner's next step: add DATAGOV_API_KEY in Vercel (Production and Preview) and recheck that /api/health reports keyConfigured: true. Vercel applies environment variables only to new deployments, so a redeploy is needed after adding it. (superseded [2026-10-16], see below)
 - [2026-10-15] The owner added DATAGOV_API_KEY in Vercel (Production and Preview) and redeployed. /api/health now reports keyConfigured: true. The key's value is held only in Vercel and appears in no file; data.gov.sg accepts it: /api/health at 2026-10-15T15:08:42Z answered ok: true, keyConfigured: true, upstream status 200, code 0, latestTimestamp 2026-10-15T23:00:00+08:00.
 - [2026-10-16] The key step above is done (supersedes the "Owner's next step" entry): see the entry recording keyConfigured: true and data.gov.sg accepting the key.
+- [2026-10-17] KnownIssues.md created at the owner's request: it lists issues deliberately left open. KI-1 is the Vercel deploy-log TS2688 error for the api functions, which the owner chose to leave (the build completes and the functions work).
 - [2026-10-15] The development container this project was started in runs Node 22 (not 24) and its network policy blocks api-open.data.gov.sg (proxy answers HTTP 403), so live calls could not be checked there; see error_log.txt. Vercel runs Node 24.x as set in its project settings.
 
 ## Data Sources
