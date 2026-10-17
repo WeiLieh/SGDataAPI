@@ -106,3 +106,4 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 - [2026-10-17] PR https://github.com/WeiLieh/SGDataAPI/pull/3 (first PM2.5 design) was merged into main on 2026-10-17 after npm run check and a green Vercel preview, and deployed to production; the session branch was then reset to main. The owner's iPhone screen recording of production showed the region-pill bug recorded under UI.
 - [2026-10-17] The owner asked for the pill fix to be committed to the branch with no pull request yet; the next PR is opened only when the owner asks.
 - [2026-10-17] After testing commit b3f8e6e on the iPhone preview, the owner asked to merge the branch into main.
+- [2026-10-17] The owner asked to open a pull request for the UI polish (KnownIssues.md, polish rounds 1–6) and merge it into main; the owner's request stands in for the "owner has tested the preview" condition, while npm run check and a green Vercel preview still apply.
