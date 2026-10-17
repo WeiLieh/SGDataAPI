@@ -7,9 +7,10 @@ import { formatSgtDate, formatSgtDateTime, staleHours } from "../lib/time";
 import { useDataset } from "../lib/useDataset";
 import { useLocateRegion } from "../lib/useLocateRegion";
 import { RegionMap } from "./pm25/RegionMap";
+import { TopBar, type ViewProps } from "./TopBar";
 
 /** PM2.5 screen, built from the UI entries of 2026-10-16 in Context.md. */
-export function Pm25View() {
+export function Pm25View({ onSwitch }: ViewProps) {
   const { state, refresh } = useDataset<Pm25Data>("pm25");
   const [chosen, setChosen] = useState<string | null>(() => loadRememberedRegion());
 
@@ -27,25 +28,7 @@ export function Pm25View() {
 
   return (
     <div className="app">
-      <header className="top">
-        <div className="toggle" role="group" aria-label="Measure">
-          <button type="button" className="segment active" aria-pressed="true">
-            PM2.5
-          </button>
-          <button type="button" className="segment" disabled aria-disabled="true">
-            PSI
-          </button>
-        </div>
-        <button
-          type="button"
-          className={busy ? "refresh spinning" : "refresh"}
-          onClick={refresh}
-          aria-label="Refresh"
-          aria-busy={busy}
-        >
-          <RefreshIcon />
-        </button>
-      </header>
+      <TopBar active="pm25" onSwitch={onSwitch} busy={busy} onRefresh={refresh} />
 
       <main className={busy && (state.response || state.error) ? "content dimmed" : "content"} aria-busy={busy}>
         <h2 className="section-title">Air Quality</h2>
@@ -180,20 +163,5 @@ function Legend() {
         </li>
       ))}
     </ul>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-      <path
-        d="M20 11a8 8 0 0 0-14.3-4.9M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9M20 20v-4h-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

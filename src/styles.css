@@ -117,11 +117,6 @@ button {
   color: var(--on-accent);
 }
 
-.segment:disabled {
-  color: var(--toggle-disabled);
-  cursor: not-allowed;
-}
-
 .refresh {
   grid-column: 3;
   grid-row: 1;
