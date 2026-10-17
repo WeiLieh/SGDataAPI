@@ -81,6 +81,8 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 
 - [2026-10-17] Owner's sixth round of polish notes, built on the branch (supersedes the earlier "refresh button on its own row under the toggle"): (1) the refresh button sits in the same row as the PM2.5/PSI tabs, on the right, at the tabs' height; (2) less padding (page top, section titles, card padding and gaps), so the cards move up and less scrolling is needed; (3) North only: its name sits above its circle (also when selected and grown); (4) North's circle is nearer Central (spread 1.9× north-south instead of 2.3×).
 
+- [2026-10-17] The owner is happy with the UI as merged in PR #5 (production commit 48cc450) for now. Next planned work: PSI functionality, built from the PSI table and colours saved above, as its own dataset from data.gov.sg's real-time PSI feed (never derived from PM2.5).
+
 ## Decisions
 
 - [2026-10-15] App name: SG Weather. Mobile-first Vite + React + TypeScript web app plus two Vercel serverless functions. Read-only: no database, login, analytics or cookies.
