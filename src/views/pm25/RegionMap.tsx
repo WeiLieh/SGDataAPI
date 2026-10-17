@@ -95,16 +95,17 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
               <text className="value" dy="0.35em">
                 {value === null ? "—" : value}
               </text>
-              {isSelected ? (
-                <g className="name-pill" transform="translate(0 33)">
-                  <rect x={-28} y={-9} width={56} height={18} rx={9} />
-                  <text dy="0.35em">{region.name.toUpperCase()}</text>
-                </g>
-              ) : (
-                <text className="name" y={33} dy="0.35em">
-                  {region.name.toUpperCase()}
-                </text>
-              )}
+              {/*
+                Both the plain label and the pill stay in the page; CSS shows one or the other.
+                Inserting and removing them on each tap left the text unpainted in iOS Safari.
+              */}
+              <text className="name" y={33} dy="0.35em" aria-hidden="true">
+                {region.name.toUpperCase()}
+              </text>
+              <g className="name-pill" transform="translate(0 33)" aria-hidden="true">
+                <rect x={-28} y={-9} width={56} height={18} rx={9} />
+                <text dy="0.35em">{region.name.toUpperCase()}</text>
+              </g>
             </g>
           );
         })}

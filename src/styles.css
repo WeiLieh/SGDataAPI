@@ -292,6 +292,12 @@ button {
 .region {
   cursor: pointer;
   outline: none;
+  /* No grey tap square in iOS Safari. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .region .hit {
@@ -357,6 +363,19 @@ button {
 .region .name {
   font-size: 10px;
   letter-spacing: 0.06em;
+}
+
+/* Label and pill are always in the page; only their visibility changes with the selection. */
+.region .name-pill {
+  opacity: 0;
+}
+
+.region.selected .name-pill {
+  opacity: 1;
+}
+
+.region.selected .name {
+  opacity: 0;
 }
 
 .region .name-pill rect {
