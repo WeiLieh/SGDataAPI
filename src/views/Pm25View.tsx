@@ -168,7 +168,7 @@ function Legend() {
   const items: Array<[string, string]> = [
     ["green", "0–55"],
     ["yellow", "56–150"],
-    ["yellow", "151–250"],
+    ["orange", "151–250"],
     ["red", "≥251"],
   ];
   return (

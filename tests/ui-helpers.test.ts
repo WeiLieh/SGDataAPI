@@ -36,10 +36,12 @@ describe("staleHours", () => {
 });
 
 describe("band colours", () => {
-  it("follows the owner's colour code; Elevated and High are both yellow", () => {
+  it("follows the owner's colour code: green, yellow, orange, red", () => {
     expect(bandTone(pm25Band(55))).toBe("green");
     expect(bandTone(pm25Band(56))).toBe("yellow");
-    expect(bandTone(pm25Band(250))).toBe("yellow");
+    expect(bandTone(pm25Band(150))).toBe("yellow");
+    expect(bandTone(pm25Band(151))).toBe("orange");
+    expect(bandTone(pm25Band(250))).toBe("orange");
     expect(bandTone(pm25Band(251))).toBe("red");
     expect(bandTone(pm25Band(null))).toBe("none");
   });
