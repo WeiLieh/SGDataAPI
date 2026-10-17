@@ -79,6 +79,8 @@ Rules for this file: every entry is one bullet starting with the Singapore date 
 
 - [2026-10-17] Island outline (supersedes the taller, spread island of the previous entry): the island is now traced from the owner's reference drawing and keeps its proportions (about 2:1 wide); it is no longer stretched. Region circles keep their size and are spread around Central (1.45× east-west, 2.3× north-south from their true positions) so circles and names never overlap each other; per the owner, circles may spill outside the island (North and South do).
 
+- [2026-10-17] Owner's sixth round of polish notes, built on the branch (supersedes the earlier "refresh button on its own row under the toggle"): (1) the refresh button sits in the same row as the PM2.5/PSI tabs, on the right, at the tabs' height; (2) less padding (page top, section titles, card padding and gaps), so the cards move up and less scrolling is needed; (3) North only: its name sits above its circle (also when selected and grown); (4) North's circle is nearer Central (spread 1.9× north-south instead of 2.3×).
+
 ## Decisions
 
 - [2026-10-15] App name: SG Weather. Mobile-first Vite + React + TypeScript web app plus two Vercel serverless functions. Read-only: no database, login, analytics or cookies.

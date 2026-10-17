@@ -22,8 +22,10 @@ const GEO_BOX = { west: 103.605, east: 104.045, north: 1.47, south: 1.215 };
 
 /** Regions are spread around Central so the circles and names never overlap each other. */
 const SPREAD = { x: 1.45, y: 2.3 };
+/** North is nearer Central (its name sits above its circle, so it needs less room). */
+const NORTH_SPREAD_Y = 1.9;
 /** Room above and below the island for circles that spill past it (owner: that is fine). */
-const MARGIN = { x: 15, top: 110, bottom: 135 };
+const MARGIN = { x: 15, top: 140, bottom: 140 };
 
 const VIEW_W = ISLAND_BOX.right - ISLAND_BOX.left + 2 * MARGIN.x;
 const VIEW_H = ISLAND_BOX.bottom - ISLAND_BOX.top + MARGIN.top + MARGIN.bottom;
@@ -46,9 +48,9 @@ function geoToDrawing(longitude: number, latitude: number): { x: number; y: numb
 const CENTRE = geoToDrawing(103.82, 1.35735);
 
 /** A region's position in viewBox units: its true place, spread out from Central. */
-function mapPoint(longitude: number, latitude: number): { x: number; y: number } {
+function mapPoint(longitude: number, latitude: number, spreadY = SPREAD.y): { x: number; y: number } {
   const { x, y } = geoToDrawing(longitude, latitude);
-  return drawingPoint(CENTRE.x + (x - CENTRE.x) * SPREAD.x, CENTRE.y + (y - CENTRE.y) * SPREAD.y);
+  return drawingPoint(CENTRE.x + (x - CENTRE.x) * SPREAD.x, CENTRE.y + (y - CENTRE.y) * spreadY);
 }
 
 function islandPath(): string {
@@ -101,7 +103,8 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
           <path className="island" d={ISLAND_PATH} />
         </svg>
         {placed.map((region) => {
-          const { x, y } = mapPoint(region.longitude!, region.latitude!);
+          const isNorth = region.id === "north";
+          const { x, y } = mapPoint(region.longitude!, region.latitude!, isNorth ? NORTH_SPREAD_Y : SPREAD.y);
           const value = values[region.id] ?? null;
           const tone = bandTone(pm25Band(value));
           const isSelected = region.id === selected;
@@ -109,7 +112,7 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
             <button
               key={region.id}
               type="button"
-              className={`region tone-${tone}${isSelected ? " selected" : ""}`}
+              className={`region tone-${tone}${isSelected ? " selected" : ""}${isNorth ? " label-above" : ""}`}
               style={{ left: `${((x / VIEW_W) * 100).toFixed(2)}%`, top: `${((y / VIEW_H) * 100).toFixed(2)}%` }}
               aria-pressed={isSelected}
               aria-label={describe(region)}
