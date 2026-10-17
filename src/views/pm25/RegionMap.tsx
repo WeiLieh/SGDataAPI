@@ -16,15 +16,37 @@ const ISLAND: Array<[number, number]> = [
 ];
 
 const VIEW_W = 360;
-const VIEW_H = 275;
 
-/** Equal-ish scale east-west, stretched 1.5× north-south so the five circles have room. */
+/** Equal-ish scale east-west, stretched 1.5× north-south. */
 function project(longitude: number, latitude: number): { x: number; y: number } {
   return { x: 10 + (longitude - 103.59) * 720, y: 10 + (1.475 - latitude) * 1080 };
 }
 
+/** Where the map is spread from: Central's label point. */
+const MAP_CENTRE = project(103.82, 1.35735);
+
+/**
+ * The whole map (island and regions) is spread 1.1× east-west and 1.4× north-south around
+ * Central, so the larger circles and their names do not overlap and stay inside the island.
+ */
+function spread(longitude: number, latitude: number): { x: number; y: number } {
+  const { x, y } = project(longitude, latitude);
+  return { x: MAP_CENTRE.x + (x - MAP_CENTRE.x) * 1.1, y: MAP_CENTRE.y + (y - MAP_CENTRE.y) * 1.4 };
+}
+
+/** Vertical extent of the spread island, plus a margin, so the drawing fits its box exactly. */
+const ISLAND_YS = ISLAND.map(([lon, lat]) => spread(lon, lat).y);
+const TOP = Math.min(...ISLAND_YS) - 10;
+const VIEW_H = Math.max(...ISLAND_YS) + 10 - TOP;
+
+/** A map point in viewBox units, after spreading and shifting below the top margin. */
+function mapPoint(longitude: number, latitude: number): { x: number; y: number } {
+  const { x, y } = spread(longitude, latitude);
+  return { x, y: y - TOP };
+}
+
 function islandPath(): string {
-  const points = ISLAND.map(([lon, lat]) => project(lon, lat));
+  const points = ISLAND.map(([lon, lat]) => mapPoint(lon, lat));
   // Smooth the outline with quadratic curves through midpoints.
   const mid = (a: { x: number; y: number }, b: { x: number; y: number }) => ({
     x: (a.x + b.x) / 2,
@@ -73,7 +95,7 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
           <path className="island" d={ISLAND_PATH} />
         </svg>
         {placed.map((region) => {
-          const { x, y } = project(region.longitude!, region.latitude!);
+          const { x, y } = mapPoint(region.longitude!, region.latitude!);
           const value = values[region.id] ?? null;
           const tone = bandTone(pm25Band(value));
           const isSelected = region.id === selected;
@@ -87,7 +109,7 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
               aria-label={describe(region)}
               onClick={() => onSelect(region.id)}
             >
-              <span className="dot" aria-hidden="true">
+              <span className={value !== null && value >= 1000 ? "dot long" : "dot"} aria-hidden="true">
                 {value === null ? "—" : value}
               </span>
               <span className="name" aria-hidden="true">
