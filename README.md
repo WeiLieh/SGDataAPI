@@ -4,7 +4,7 @@ A mobile-first web app that shows Singapore's **1-hour PM2.5 concentration by re
 
 The screen shows the selected region's reading with NEA's band and health recommendation, and a tappable map of the five regions. The region you pick, by tapping or with "Use my location", is remembered on your phone; only its name is stored, never a reading, and your position never leaves the phone. Data re-fetches every 5 minutes, when you come back to the page, and on Refresh. The design is recorded under "UI" in `Context.md`.
 
-A **PSI** tab shows the 24-hour Pollutant Standards Index (PSI, an index with no unit) per region for the latest hour and the 11 hours before it, with NEA's descriptor, health recommendation and band colour. For now it is a plain, unstyled screen; the app always opens on PM2.5.
+A **PSI** tab shows the latest 24-hour Pollutant Standards Index (PSI, an index with no unit) on the same screen design: the selected region's PSI with NEA's descriptor, health recommendation and band colour, and the region map with a five-band legend. The selected region is shared by both tabs; the app always opens on PM2.5.
 
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 

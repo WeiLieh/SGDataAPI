@@ -1,6 +1,5 @@
 import type { Pm25Region } from "../../../shared/datasets/pm25";
-import { pm25Band } from "../../../shared/datasets/pm25-bands";
-import { bandTone } from "../../lib/colors";
+import type { ScreenConfig } from "../screens";
 
 /**
  * Outline of Singapore island traced from the owner's reference drawing (2026-10-17), in that
@@ -78,17 +77,20 @@ interface Props {
   values: Record<string, number | null>;
   selected: string | null;
   onSelect: (id: string) => void;
-  unit: string;
+  /** Unit after a value in screen-reader labels; null for an index such as PSI. */
+  unit: string | null;
+  band: ScreenConfig["band"];
 }
 
-export function RegionMap({ regions, values, selected, onSelect, unit }: Props) {
+export function RegionMap({ regions, values, selected, onSelect, unit, band: bandOf }: Props) {
   const placed = regions.filter((r) => r.latitude !== null && r.longitude !== null);
   const unplaced = regions.filter((r) => r.latitude === null || r.longitude === null);
 
   const describe = (region: Pm25Region) => {
     const value = values[region.id] ?? null;
-    const band = pm25Band(value);
-    return value === null ? `${region.name}: no reading` : `${region.name}: ${value} ${unit}, ${band?.label ?? ""}`;
+    const band = bandOf(value);
+    const amount = unit ? `${value} ${unit}` : `${value}`;
+    return value === null ? `${region.name}: no reading` : `${region.name}: ${amount}, ${band?.label ?? ""}`;
   };
 
   return (
@@ -106,7 +108,7 @@ export function RegionMap({ regions, values, selected, onSelect, unit }: Props) 
           const isNorth = region.id === "north";
           const { x, y } = mapPoint(region.longitude!, region.latitude!, isNorth ? NORTH_SPREAD_Y : SPREAD.y);
           const value = values[region.id] ?? null;
-          const tone = bandTone(pm25Band(value));
+          const tone = bandOf(value)?.tone ?? "none";
           const isSelected = region.id === selected;
           return (
             <button

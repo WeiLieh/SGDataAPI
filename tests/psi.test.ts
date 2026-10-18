@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../api/data.js";
-import { normalizePsi, psi, psiBodySchema, type PsiData } from "../shared/datasets/psi.js";
+import { normalizePsi, psi, psiBodySchema } from "../shared/datasets/psi.js";
 import { psiBand } from "../shared/datasets/psi-bands.js";
-import { PSI_COLOURS } from "../src/lib/colors.js";
-import { needsPreviousDay, psiHourRows } from "../src/lib/psiHistory.js";
-import { mergePsiDays } from "../src/lib/usePsiHistory.js";
+import { psiTone } from "../src/lib/colors.js";
+import { PM25_SCREEN, PSI_SCREEN } from "../src/views/screens.js";
 import { call, fixtureJson, fixtureText, upstream } from "./helpers.js";
 
 const sample = fixtureJson<Record<string, unknown>>("psi-latest.json");
@@ -60,16 +59,17 @@ describe("PSI bands", () => {
     expect(psiBand(value)?.label).toBe(label);
   });
 
-  it("carries the owner's recommendations and colours", () => {
+  it("carries the owner's recommendations and colour tones", () => {
     expect(psiBand(150)?.recommendation).toBe("Reduce prolonged or strenuous outdoor physical exertion.");
     expect(psiBand(350)?.recommendation).toBe("Minimise or avoid all outdoor activity.");
-    expect(PSI_COLOURS).toEqual({
-      Good: "#1e7b34",
-      Moderate: "#ffcd00",
-      Unhealthy: "#f2a900",
-      "Very Unhealthy": "#f28c28",
-      Hazardous: "#d93025",
-    });
+    expect([30, 80, 150, 250, 350].map((v) => psiTone(psiBand(v)))).toEqual([
+      "green",
+      "yellow",
+      "amber",
+      "orange",
+      "red",
+    ]);
+    expect(psiTone(psiBand(null))).toBe("none");
   });
 
   it("gives no band to a missing reading", () => {
@@ -78,44 +78,33 @@ describe("PSI bands", () => {
   });
 });
 
-function hourly(hours: string[], value = 60): PsiData {
-  return {
-    regions: [{ id: "central", name: "Central", latitude: 1.35735, longitude: 103.82 }],
-    readings: hours.map((h) => ({ timestamp: h, updatedTimestamp: h, values: { central: value } })),
-  };
-}
-
-describe("past 12 hours", () => {
-  it("gives the 12 clock hours ending at the latest reading, newest first, with a gap as no reading", () => {
-    const hours = Array.from({ length: 14 }, (_, i) => `2026-10-17T${String(i + 7).padStart(2, "0")}:00:00+08:00`);
-    const withGap = hours.filter((h) => !h.includes("T15:"));
-    const rows = psiHourRows(hourly(withGap).readings);
-    expect(rows).toHaveLength(12);
-    expect(rows[0]?.timestamp).toBe("2026-10-17T20:00:00+08:00");
-    expect(rows[11]?.timestamp).toBe("2026-10-17T09:00:00+08:00");
-    const gap = rows.find((r) => r.reading === null);
-    expect(gap && Date.parse(gap.timestamp)).toBe(Date.parse("2026-10-17T15:00:00+08:00"));
-    expect(rows.filter((r) => r.reading === null)).toHaveLength(1);
+describe("PSI and PM2.5 screens", () => {
+  it("titles the cards per measure, and PSI has no unit", () => {
+    expect(PM25_SCREEN.title).toBe("Air Quality - PM2.5");
+    expect(PSI_SCREEN.title).toBe("Air Quality - PSI");
+    expect(PM25_SCREEN.unit).toBe("µg/m³");
+    expect(PSI_SCREEN.unit).toBeNull();
+    expect(PSI_SCREEN.creditName).toBe("Pollutant Standards Index (PSI)");
   });
 
-  it("crosses midnight when yesterday's readings are merged in", () => {
-    const yesterday = hourly(["2026-10-16T21:00:00+08:00", "2026-10-16T22:00:00+08:00", "2026-10-16T23:00:00+08:00"], 40);
-    const today = hourly(Array.from({ length: 9 }, (_, i) => `2026-10-17T0${i}:00:00+08:00`), 70);
-    const merged = mergePsiDays(yesterday, today);
-    const rows = psiHourRows(merged.readings);
-    expect(rows.map((r) => r.reading?.values.central)).toEqual([70, 70, 70, 70, 70, 70, 70, 70, 70, 40, 40, 40]);
-    expect(rows[11]?.timestamp).toBe("2026-10-16T21:00:00+08:00");
+  it("has a five-band PSI legend and a four-band PM2.5 legend", () => {
+    expect(PSI_SCREEN.legend.map((l) => `${l.label} ${l.tone}`)).toEqual([
+      "0–50 green",
+      "51–100 yellow",
+      "101–200 amber",
+      "201–300 orange",
+      "≥301 red",
+    ]);
+    expect(PM25_SCREEN.legend).toHaveLength(4);
   });
 
-  it("asks for yesterday only when the latest SGT hour is before 11:00", () => {
-    expect(needsPreviousDay("2026-10-17T10:00:00+08:00")).toBe(true);
-    expect(needsPreviousDay("2026-10-17T11:00:00+08:00")).toBe(false);
-    expect(needsPreviousDay("2026-10-17T00:00:00+08:00")).toBe(true);
-    expect(needsPreviousDay("2026-10-17T03:00:00Z")).toBe(false); // 11:00 SGT
-  });
-
-  it("is empty when there are no readings", () => {
-    expect(psiHourRows([])).toEqual([]);
+  it("gives the PSI screen the descriptor, recommendation and tone of a value", () => {
+    expect(PSI_SCREEN.band(185)).toEqual({
+      label: "Unhealthy",
+      recommendation: "Reduce prolonged or strenuous outdoor physical exertion.",
+      tone: "amber",
+    });
+    expect(PSI_SCREEN.band(null)).toBeNull();
   });
 });
 
