@@ -32,17 +32,24 @@ export interface DataFailure {
 
 export type DataResponse<TData = unknown> = DataSuccess<TData> | DataFailure;
 
-export interface HealthResponse {
+/** The result of checking one dataset's latest endpoint. */
+export interface HealthCheck {
+  ok: boolean;
+  endpoint: string;
+  status: number | null;
+  code: number | null;
+  latencyMs: number;
+  latestTimestamp: string | null;
+  message: string;
+}
+
+/**
+ * GET /api/health: one block per checked dataset, named health<ID> ("healthPM25", "healthPSI"),
+ * in registry order (PM2.5 first). With ?dataset=<id> only that dataset is checked.
+ */
+export type HealthResponse = {
   ok: boolean;
   checkedAt: string;
   keyConfigured: boolean;
-  upstream: {
-    endpoint: string;
-    status: number | null;
-    code: number | null;
-    latencyMs: number;
-    latestTimestamp: string | null;
-    message: string;
-  };
   datasets: string[];
-}
+} & { [check: `health${string}`]: HealthCheck };

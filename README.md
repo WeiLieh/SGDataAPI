@@ -4,6 +4,8 @@ A mobile-first web app that shows Singapore's **1-hour PM2.5 concentration by re
 
 The screen shows the selected region's reading with NEA's band and health recommendation, and a tappable map of the five regions. The region you pick, by tapping or with "Use my location", is remembered on your phone; only its name is stored, never a reading, and your position never leaves the phone. Data re-fetches every 5 minutes, when you come back to the page, and on Refresh. The design is recorded under "UI" in `Context.md`.
 
+A **PSI** tab shows the latest 24-hour Pollutant Standards Index (PSI, an index with no unit) on the same screen design: the selected region's PSI with NEA's descriptor, health recommendation and band colour, and the region map with a five-band legend. The selected region is shared by both tabs; the app always opens on PM2.5.
+
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 
 The brief is in `MasterPrompt.md`. Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
@@ -13,7 +15,9 @@ The brief is in `MasterPrompt.md`. Every later instruction and decision is in `C
 - Dataset: [PM2.5](https://data.gov.sg/datasets?query=pm2.5&resultId=d_e1058d6974c877257e32048ab128ad83) (`d_e1058d6974c877257e32048ab128ad83`), National Environment Agency (NEA).
 - Endpoint: `GET https://api-open.data.gov.sg/v2/real-time/api/pm25`, optionally with `date=YYYY-MM-DD` or `date=YYYY-MM-DDTHH:mm:ss` (Singapore time).
 - Band thresholds: NEA's 1-hour PM2.5 concentration bands, from [haze.gov.sg](https://www.haze.gov.sg) (`shared/datasets/pm25-bands.ts`).
-- Licence: Contains information from PM2.5 accessed on the date shown in the app from data.gov.sg which is made available under the terms of the [Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
+- Dataset: [Pollutant Standards Index (PSI)](https://data.gov.sg/datasets?query=psi&resultId=d_fe37906a0182569d891506e815e819b7) (`d_fe37906a0182569d891506e815e819b7`), NEA. Endpoint `GET https://api-open.data.gov.sg/v2/real-time/api/psi`, with the same `date` option. Only `psi_twenty_four_hourly` is shown.
+- PSI bands: the owner's table following NEA (`shared/datasets/psi-bands.ts`): Good 0–50, Moderate 51–100, Unhealthy 101–200, Very Unhealthy 201–300, Hazardous 301 and above.
+- Licence: Contains information from PM2.5 (or Pollutant Standards Index (PSI)) accessed on the date shown in the app from data.gov.sg which is made available under the terms of the [Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
 
 ## Run it locally
 
@@ -33,7 +37,7 @@ The app works without a key. A data.gov.sg API key only raises the rate limit (w
 
 ### `GET /api/data?dataset=<id>&<parameters>`
 
-`dataset=pm25` takes one optional parameter, `date` (`YYYY-MM-DD` for a whole Singapore day, or `YYYY-MM-DDTHH:mm:ss` for the latest reading at that moment). Without `date` you get the latest reading.
+`dataset=pm25` and `dataset=psi` each take one optional parameter, `date` (`YYYY-MM-DD` for a whole Singapore day, or `YYYY-MM-DDTHH:mm:ss` for the latest reading at that moment). Without `date` you get the latest reading.
 
 Success (`200`, `Cache-Control: public, s-maxage=300, stale-while-revalidate=300`; an earlier day uses 86400):
 
@@ -101,22 +105,32 @@ Nothing is retried automatically.
 
 ### `GET /api/health`
 
-Calls the PM2.5 latest endpoint once (5-second timeout). Answers `200` when data.gov.sg returned valid data, otherwise `503`. Always `Cache-Control: no-store`.
+Checks each dataset's latest endpoint once (5-second timeout each): PM2.5 first, then PSI. Answers `200` when every checked dataset returned valid data, otherwise `503`, and each block says whether that dataset is fine. `?dataset=pm25` or `?dataset=psi` checks just one; an unknown name answers `404`. Always `Cache-Control: no-store`. (One function for all datasets keeps the deployment at two serverless functions.)
 
 ```json
 {
   "ok": true,
-  "checkedAt": "2026-10-15T13:20:00.000Z",
-  "keyConfigured": false,
-  "upstream": {
+  "checkedAt": "2026-10-17T12:40:00.000Z",
+  "keyConfigured": true,
+  "healthPM25": {
+    "ok": true,
     "endpoint": "https://api-open.data.gov.sg/v2/real-time/api/pm25",
     "status": 200,
     "code": 0,
     "latencyMs": 184,
-    "latestTimestamp": "2026-10-15T21:00:00+08:00",
+    "latestTimestamp": "2026-10-17T20:00:00+08:00",
     "message": "data.gov.sg answered with valid PM2.5 data."
   },
-  "datasets": ["pm25"]
+  "healthPSI": {
+    "ok": true,
+    "endpoint": "https://api-open.data.gov.sg/v2/real-time/api/psi",
+    "status": 200,
+    "code": 0,
+    "latencyMs": 201,
+    "latestTimestamp": "2026-10-17T20:00:00+08:00",
+    "message": "data.gov.sg answered with valid PSI data."
+  },
+  "datasets": ["pm25", "psi"]
 }
 ```
 

@@ -16,6 +16,9 @@
   --accent: #1d71f2;
   --on-accent: #ffffff;
   --orange: #f28c28;
+  /* PSI Unhealthy: a darker yellow between Moderate and Very Unhealthy (first pass). */
+  --amber: #f2a900;
+  --on-amber: #ffffff;
   --on-orange: #ffffff;
   --island: #1c9cf6;
   --island-edge: #19c3fb;
@@ -115,11 +118,6 @@ button {
 .segment.active {
   background: var(--accent);
   color: var(--on-accent);
-}
-
-.segment:disabled {
-  color: var(--toggle-disabled);
-  cursor: not-allowed;
 }
 
 .refresh {
@@ -248,6 +246,11 @@ button {
 .pill.tone-yellow {
   background: var(--yellow);
   color: var(--on-yellow);
+}
+
+.pill.tone-amber {
+  background: var(--amber);
+  color: var(--on-amber);
 }
 
 .pill.tone-orange {
@@ -415,6 +418,10 @@ button {
   --ring: var(--yellow);
 }
 
+.region.tone-amber {
+  --ring: var(--amber);
+}
+
 .region.tone-orange {
   --ring: var(--orange);
 }
@@ -527,6 +534,10 @@ button {
 
 .swatch.tone-yellow {
   background: var(--yellow);
+}
+
+.swatch.tone-amber {
+  background: var(--amber);
 }
 
 .swatch.tone-orange {

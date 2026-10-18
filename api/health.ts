@@ -1,7 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { HealthResponse } from "../shared/api-types.js";
-import type { Pm25Data } from "../shared/datasets/pm25.js";
-import { datasetIds, registry } from "../shared/datasets/registry.js";
+import type { HealthCheck, HealthResponse } from "../shared/api-types.js";
+import { datasetIds, isDatasetId, registry, type DatasetId } from "../shared/datasets/registry.js";
 import { isKeyConfigured } from "./_lib/env.js";
 import { ApiError, logFailure } from "./_lib/errors.js";
 import { datasetEndpoint, loadDataset } from "./_lib/fetch-dataset.js";
@@ -10,57 +9,84 @@ import { rejectNonGet, sendJson } from "./_lib/http.js";
 const SCOPE = "api/health";
 const UPSTREAM_TIMEOUT_MS = 5_000;
 
-/** GET /api/health: one call to the PM2.5 latest endpoint, to check a deployment without the app. */
-export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const def = registry.pm25;
+/** "healthPM25", "healthPSI": the reply key for a dataset's check. */
+function checkKey(id: DatasetId): `health${string}` {
+  return `health${id.toUpperCase()}`;
+}
+
+/** Calls one dataset's latest endpoint once, with a 5-second timeout. */
+async function check(id: DatasetId): Promise<HealthCheck> {
+  const def = registry[id];
   const endpoint = datasetEndpoint(def, {});
+  const started = performance.now();
+  const latency = () => Math.round(performance.now() - started);
+  try {
+    const loaded = await loadDataset(def, {}, { timeoutMs: UPSTREAM_TIMEOUT_MS, scope: SCOPE });
+    const readings = (loaded.data as { readings?: Array<{ timestamp: string }> }).readings ?? [];
+    return {
+      ok: true,
+      endpoint,
+      status: loaded.upstreamStatus,
+      code: loaded.upstreamCode,
+      latencyMs: latency(),
+      latestTimestamp: readings.at(-1)?.timestamp ?? null,
+      message: `data.gov.sg answered with valid ${def.title} data.`,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        ok: false,
+        endpoint,
+        status: error.upstreamStatus,
+        code: error.upstreamCode,
+        latencyMs: latency(),
+        latestTimestamp: null,
+        message: error.message,
+      };
+    }
+    const stack = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    logFailure(SCOPE, `${id} unexpected error: ${stack}`);
+    return {
+      ok: false,
+      endpoint,
+      status: null,
+      code: null,
+      latencyMs: latency(),
+      latestTimestamp: null,
+      message: "Unexpected server error.",
+    };
+  }
+}
+
+/**
+ * GET /api/health checks every dataset (PM2.5 first, then PSI); ?dataset=<id> checks one.
+ * 200 when every checked dataset answered with valid data, otherwise 503. One function for all
+ * datasets keeps the deployment at two functions (Vercel free-plan cap).
+ */
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const url = new URL(req.url ?? "/", "http://localhost");
   const checkedAt = new Date().toISOString();
   const keyConfigured = isKeyConfigured();
+  const failure = (status: number, message: string) => ({ ok: false, checkedAt, keyConfigured, error: { status, message } });
 
-  if (
-    rejectNonGet(req.method, res, {
-      ok: false,
-      checkedAt,
-      keyConfigured,
-      error: { status: 405, message: "Only GET is allowed." },
-    })
-  ) {
+  if (rejectNonGet(req.method, res, failure(405, "Only GET is allowed."))) return;
+
+  const requested = url.searchParams.get("dataset");
+  if (requested !== null && !isDatasetId(requested)) {
+    sendJson(res, 404, failure(404, `Unknown dataset "${requested}". Known datasets: ${datasetIds.join(", ")}.`), {
+      "Cache-Control": "no-store",
+    });
     return;
   }
 
-  const started = performance.now();
-  const reply = (ok: boolean, upstream: Omit<HealthResponse["upstream"], "endpoint" | "latencyMs">): void => {
-    const body: HealthResponse = {
-      ok,
-      checkedAt,
-      keyConfigured,
-      upstream: { endpoint, ...upstream, latencyMs: Math.round(performance.now() - started) },
-      datasets: datasetIds,
-    };
-    sendJson(res, ok ? 200 : 503, body, { "Cache-Control": "no-store" });
-  };
+  const ids: DatasetId[] = requested !== null && isDatasetId(requested) ? [requested] : datasetIds;
+  const results = await Promise.all(ids.map((id) => check(id)));
 
-  try {
-    const loaded = await loadDataset(def, {}, { timeoutMs: UPSTREAM_TIMEOUT_MS, scope: SCOPE });
-    const data = loaded.data as Pm25Data;
-    reply(true, {
-      status: loaded.upstreamStatus,
-      code: loaded.upstreamCode,
-      latestTimestamp: data.readings.at(-1)?.timestamp ?? null,
-      message: "data.gov.sg answered with valid PM2.5 data.",
-    });
-  } catch (error) {
-    if (error instanceof ApiError) {
-      reply(false, {
-        status: error.upstreamStatus,
-        code: error.upstreamCode,
-        latestTimestamp: null,
-        message: error.message,
-      });
-      return;
-    }
-    const stack = error instanceof Error ? (error.stack ?? error.message) : String(error);
-    logFailure(SCOPE, `unexpected error: ${stack}`);
-    reply(false, { status: null, code: null, latestTimestamp: null, message: "Unexpected server error." });
-  }
+  const body: HealthResponse = { ok: results.every((r) => r.ok), checkedAt, keyConfigured, datasets: datasetIds };
+  ids.forEach((id, i) => {
+    body[checkKey(id)] = results[i]!;
+  });
+  // Key order is what JSON shows: summary first, then PM2.5, then PSI, then the dataset list.
+  const { datasets, ...rest } = body;
+  sendJson(res, body.ok ? 200 : 503, { ...rest, datasets }, { "Cache-Control": "no-store" });
 }
