@@ -31,3 +31,18 @@ export async function sendTelegramMessage(
     return false;
   }
 }
+
+/** Shows "typing..." in the chat while Haze Uncle thinks. Best effort: failures are only logged. */
+export async function sendTypingAction(token: string, chatId: number, fetchFn: typeof fetch = fetch): Promise<void> {
+  try {
+    const res = await fetchFn(`https://api.telegram.org/bot${token}/sendChatAction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, action: "typing" }),
+      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+    });
+    if (!res.ok) logBot(`sendChatAction HTTP ${res.status}`);
+  } catch (error) {
+    logBot(`sendChatAction failed (${error instanceof Error ? error.name : "Error"})`);
+  }
+}
