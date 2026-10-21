@@ -20,14 +20,16 @@ export interface BotReply {
 const REGION_LIST = REGION_ORDER.join(", ");
 
 export const HELP_TEXT = [
-  "SG Weather bot: Singapore air quality from data.gov.sg.",
+  "HazeUncle: Singapore air quality from data.gov.sg.",
   [
     "/psi - 24-hour PSI for all five regions",
     "/psi <region> - one region, e.g. /psi north",
     "/pm25 - 1-hour PM2.5 for all five regions",
     "/pm25 <region> - one region, e.g. /pm25 west",
+    "/forget - clear what HazeUncle remembers of this chat",
     "/help - this message",
   ].join("\n"),
+  'Or just ask in your own words, e.g. "Can I go jogging in the west now?"',
   `Regions: ${REGION_LIST}.`,
 ].join("\n\n");
 
@@ -35,11 +37,16 @@ export const START_TEXT = `Hello! ${HELP_TEXT}`;
 
 const DATA_COMMANDS: Record<string, BotDatasetId> = { "/psi": "psi", "/pm25": "pm25" };
 
-/** Answers one text message. Never throws: a failed data call becomes the standard apology. */
+/** The command word of a message, lowercased; "/psi@BotName" (group chats) becomes "/psi". */
+export function commandOf(text: string): string {
+  const first = text.trim().split(/\s+/)[0] ?? "";
+  return first.toLowerCase().split("@")[0] ?? "";
+}
+
+/** Answers one fixed command (or, without Haze Uncle, any text). Never throws. */
 export async function handleCommand(text: string, getData: GetData): Promise<BotReply> {
-  const [first = "", ...rest] = text.trim().split(/\s+/);
-  // In group chats Telegram sends "/psi@BotName"; the part after @ is dropped.
-  const command = first.toLowerCase().split("@")[0] ?? "";
+  const [, ...rest] = text.trim().split(/\s+/);
+  const command = commandOf(text);
 
   if (command === "/start") return { text: START_TEXT };
   if (command === "/help") return { text: HELP_TEXT };

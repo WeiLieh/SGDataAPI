@@ -82,6 +82,10 @@ beforeEach(() => {
   vi.stubEnv("APP_BASE_URL", "https://app.test/");
   vi.stubEnv("VERCEL_URL", "");
   vi.stubEnv("VERCEL_AUTOMATION_BYPASS_SECRET", "");
+  // Haze Uncle is off in these Phase 1 tests (no Claude key, no store).
+  for (const name of ["ANTHROPIC_API_KEY", "KV_REST_API_URL", "KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) {
+    vi.stubEnv(name, "");
+  }
   errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -205,6 +209,9 @@ describe("bot settings and previews", () => {
       webhookSecret: null,
       appBaseUrl: "https://a.test",
       bypassSecret: null,
+      anthropicApiKey: null,
+      storeUrl: null,
+      storeToken: null,
     });
   });
 });

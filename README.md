@@ -6,7 +6,7 @@ The screen shows the selected region's reading with NEA's band and health recomm
 
 A **PSI** tab shows the latest 24-hour Pollutant Standards Index (PSI, an index with no unit) on the same screen design: the selected region's PSI with NEA's descriptor, health recommendation and band colour, and the region map with a five-band legend. The selected region is shared by both tabs; the app always opens on PM2.5.
 
-A **Telegram bot** answers `/psi` and `/pm25` in chat from the same data (see "Telegram bot" below).
+A **Telegram bot, HazeUncle,** answers `/psi` and `/pm25` in chat from the same data, and answers questions in your own words in a friendly Singlish "uncle" voice, powered by Claude (see "Telegram bot" below).
 
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 
@@ -156,6 +156,8 @@ Commands (any capitalisation):
 | `/start`, `/help` | What the bot does and the commands |
 | `/psi` or `/psi <region>` | Latest 24-hour PSI for all five regions, or one |
 | `/pm25` or `/pm25 <region>` | Latest 1-hour PM2.5 (µg/m³) for all five regions, or one |
+| `/forget` | Clears what HazeUncle remembers of this chat |
+| Anything else | Haze Uncle answers in his own words (see "Haze Uncle" below) |
 
 Each reading shows the value, the band and the health recommendation (from the same band files as the web app), the reading time in Singapore time, and ends with "Data from NEA via data.gov.sg. Not medical advice." A missing value shows "No reading", an unknown region lists the valid ones, and other text gets the help. If the data can't be fetched, the bot says "I couldn't fetch that right now, please try again." and nothing more.
 
@@ -177,6 +179,8 @@ Settings, in Vercel only (placeholders in `.env.example`; never commit real valu
 | `TELEGRAM_BOT_TOKEN` | Production, Preview | From BotFather; used only to send replies |
 | `TELEGRAM_WEBHOOK_SECRET` | Production, Preview | Any long random string; the same one is given to Telegram when registering the webhook |
 | `APP_BASE_URL` | Production | `https://sg-data-api.vercel.app` |
+| `ANTHROPIC_API_KEY` | Production, Preview | Haze Uncle's Claude key (Anthropic Console); set a monthly spend limit there |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Production, Preview | Set by Vercel when an Upstash Redis store is added under Storage (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` also work) |
 
 Preview deployments find their own address through `VERCEL_URL`, and get past Deployment Protection with `VERCEL_AUTOMATION_BYPASS_SECRET`; Vercel provides both once "Protection Bypass for Automation" is turned on in the project's Deployment Protection settings.
 
@@ -191,6 +195,17 @@ curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"   # check it
 ```
 
 The bot can't be reached from `npm run dev` (Telegram needs a public HTTPS address); locally it is covered by the tests.
+
+### Haze Uncle (Claude)
+
+Any message that isn't a command goes to Haze Uncle: Claude (`claude-haiku-5-5`, set in `api/_bot/claude.ts`) with a friendly, no-nonsense Singaporean uncle persona (`shared/bot/persona.ts`).
+
+- **Topic:** air quality and haze in Singapore only. Anything else gets a short redirect to `/help`.
+- **Numbers:** every reading comes from the `get_psi` / `get_pm25` tools, which call the app's own `/api/data` during that answer; Claude never guesses or reuses an old number. Replies that quote readings end with "Data from NEA via data.gov.sg. Not medical advice."
+- **Limits:** 30 Haze Uncle answers per person per Singapore day; the owner's monthly spend limit in the Anthropic Console caps the total. `/psi` and `/pm25` are always free.
+- **Strikes:** per person, over a rolling 12 hours, the 2nd off-topic or abusive message gets a warning and the 3rd a ban notice; that person then gets no replies at all for 24 hours.
+- **What is stored** (Upstash Redis; everything expires on its own): the text of the last 10 exchanges per chat, cleared after 24 hours of silence or at once with `/forget`; strike times (12 hours), mutes (24 hours), daily counts (2 days) and recently seen Telegram update ids (1 hour). No readings and nothing else.
+- **If Claude or the store is not set up,** plain messages get the help text, as before Haze Uncle.
 
 ## How to add a dataset
 

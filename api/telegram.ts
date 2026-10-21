@@ -6,10 +6,14 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
-import { handleCommand } from "../shared/bot/handle-command.js";
+import { commandOf } from "../shared/bot/handle-command.js";
+import { type RespondDeps, respond } from "../shared/bot/respond.js";
+import type { BotStore } from "../shared/bot/store.js";
+import { makeAskClaude } from "./_bot/claude.js";
 import { makeGetData } from "./_bot/get-data.js";
-import { logBot, readBotSettings } from "./_bot/settings.js";
-import { sendTelegramMessage } from "./_bot/telegram-api.js";
+import { type BotSettings, logBot, readBotSettings } from "./_bot/settings.js";
+import { sendTelegramMessage, sendTypingAction } from "./_bot/telegram-api.js";
+import { makeUpstashStore } from "./_bot/upstash-store.js";
 import { sendJson } from "./_lib/http.js";
 
 const MAX_BODY_BYTES = 1_000_000;
@@ -17,11 +21,17 @@ const SECRET_HEADER = "x-telegram-bot-api-secret-token";
 
 /** Only plain text messages are answered; anything else (photos, stickers, edits...) is ignored. */
 const textMessageSchema = z.object({
+  update_id: z.number(),
   message: z.object({
     chat: z.object({ id: z.number() }),
+    from: z.object({ id: z.number() }).optional(),
     text: z.string(),
   }),
 });
+
+function makeStore(settings: BotSettings): BotStore | null {
+  return settings.storeUrl && settings.storeToken ? makeUpstashStore(settings.storeUrl, settings.storeToken) : null;
+}
 
 /** Compares in constant time, so the secret can't be guessed from response timing. */
 function secretMatches(given: string | string[] | undefined, expected: string): boolean {
@@ -76,12 +86,48 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   try {
     const parsed = textMessageSchema.safeParse(await readUpdate(req));
     if (parsed.success) {
-      const { chat, text } = parsed.data.message;
-      const reply = await handleCommand(text, makeGetData(settings));
-      if (settings.botToken) {
-        await sendTelegramMessage(settings.botToken, chat.id, reply.text);
-      } else {
-        logBot("reply not sent: TELEGRAM_BOT_TOKEN is not set");
+      const { update_id: updateId, message } = parsed.data;
+      const { chat, text } = message;
+      const token = settings.botToken;
+      const store = makeStore(settings);
+
+      // Telegram re-sends an update it thinks was lost; answer each one only once.
+      let firstTime = true;
+      if (store) {
+        try {
+          firstTime = await store.markUpdateSeen(`telegram:${updateId}`);
+        } catch (error) {
+          logBot(`duplicate check failed (${error instanceof Error ? error.name : "Error"})`);
+        }
+      }
+
+      if (firstTime) {
+        const uncleReady = Boolean(settings.anthropicApiKey && store);
+        if (!uncleReady && !commandOf(text).startsWith("/")) {
+          logBot(`Haze Uncle is off: ${settings.anthropicApiKey ? "" : "ANTHROPIC_API_KEY "}${store ? "" : "store "}not set`);
+        }
+        const deps: RespondDeps = {
+          getData: makeGetData(settings),
+          uncle:
+            uncleReady && store && settings.anthropicApiKey
+              ? {
+                  ask: makeAskClaude(settings.anthropicApiKey),
+                  store,
+                  now: () => new Date(),
+                  onThinking: token ? () => sendTypingAction(token, chat.id) : undefined,
+                  log: logBot,
+                }
+              : null,
+        };
+        const ctx = { channel: "telegram", chatId: String(chat.id), userId: String(message.from?.id ?? chat.id) };
+        const reply = await respond(text, ctx, deps);
+        if (reply === null) {
+          // A muted user: stay silent.
+        } else if (token) {
+          await sendTelegramMessage(token, chat.id, reply.text);
+        } else {
+          logBot("reply not sent: TELEGRAM_BOT_TOKEN is not set");
+        }
       }
     }
   } catch (error) {

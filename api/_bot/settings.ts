@@ -11,6 +11,11 @@ export interface BotSettings {
   appBaseUrl: string | null;
   /** Vercel's "Protection Bypass for Automation" secret, so previews can call their own /api/data. */
   bypassSecret: string | null;
+  /** Haze Uncle's Claude key; without it plain messages get the help text. */
+  anthropicApiKey: string | null;
+  /** The Upstash Redis REST address and token (Vercel's Upstash integration sets them). */
+  storeUrl: string | null;
+  storeToken: string | null;
 }
 
 function value(env: NodeJS.ProcessEnv, name: string): string | null {
@@ -31,6 +36,9 @@ export function readBotSettings(env: NodeJS.ProcessEnv = process.env): BotSettin
     webhookSecret: value(env, "TELEGRAM_WEBHOOK_SECRET"),
     appBaseUrl: base ? base.replace(/\/+$/, "") : null,
     bypassSecret: value(env, "VERCEL_AUTOMATION_BYPASS_SECRET"),
+    anthropicApiKey: value(env, "ANTHROPIC_API_KEY"),
+    storeUrl: value(env, "KV_REST_API_URL") ?? value(env, "UPSTASH_REDIS_REST_URL"),
+    storeToken: value(env, "KV_REST_API_TOKEN") ?? value(env, "UPSTASH_REDIS_REST_TOKEN"),
   };
 }
 
