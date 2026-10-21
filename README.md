@@ -6,9 +6,11 @@ The screen shows the selected region's reading with NEA's band and health recomm
 
 A **PSI** tab shows the latest 24-hour Pollutant Standards Index (PSI, an index with no unit) on the same screen design: the selected region's PSI with NEA's descriptor, health recommendation and band colour, and the region map with a five-band legend. The selected region is shared by both tabs; the app always opens on PM2.5.
 
+A **Telegram bot** answers `/psi` and `/pm25` in chat from the same data (see "Telegram bot" below).
+
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 
-The brief is in `MasterPrompt.md`. Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
+The brief is in `MasterPrompt.md` (the original web-app-only brief is archived in `docs/archive/`). Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
 
 ## Data source and licence
 
@@ -105,7 +107,7 @@ Nothing is retried automatically.
 
 ### `GET /api/health`
 
-Checks each dataset's latest endpoint once (5-second timeout each): PM2.5 first, then PSI. Answers `200` when every checked dataset returned valid data, otherwise `503`, and each block says whether that dataset is fine. `?dataset=pm25` or `?dataset=psi` checks just one; an unknown name answers `404`. Always `Cache-Control: no-store`. (One function for all datasets keeps the deployment at two serverless functions.)
+Checks each dataset's latest endpoint once (5-second timeout each): PM2.5 first, then PSI. Answers `200` when every checked dataset returned valid data, otherwise `503`, and each block says whether that dataset is fine. `?dataset=pm25` or `?dataset=psi` checks just one; an unknown name answers `404`. Always `Cache-Control: no-store`. (One function for all datasets keeps the web app at two serverless functions.)
 
 ```json
 {
@@ -134,9 +136,65 @@ Checks each dataset's latest endpoint once (5-second timeout each): PM2.5 first,
 }
 ```
 
+### `POST /api/telegram`
+
+The Telegram webhook; only Telegram calls it. See "Telegram bot" below.
+
+| Situation | Status |
+| --- | --- |
+| Method other than POST | 405 (`Allow: POST`) |
+| `TELEGRAM_WEBHOOK_SECRET` not set | 503 |
+| Missing or wrong `X-Telegram-Bot-Api-Secret-Token` header | 401 |
+| Anything else, including failures | 200 `{ "ok": true }`, so Telegram never retries |
+
+## Telegram bot
+
+Commands (any capitalisation):
+
+| Command | Reply |
+| --- | --- |
+| `/start`, `/help` | What the bot does and the commands |
+| `/psi` or `/psi <region>` | Latest 24-hour PSI for all five regions, or one |
+| `/pm25` or `/pm25 <region>` | Latest 1-hour PM2.5 (µg/m³) for all five regions, or one |
+
+Each reading shows the value, the band and the health recommendation (from the same band files as the web app), the reading time in Singapore time, and ends with "Data from NEA via data.gov.sg. Not medical advice." A missing value shows "No reading", an unknown region lists the valid ones, and other text gets the help. If the data can't be fetched, the bot says "I couldn't fetch that right now, please try again." and nothing more.
+
+How it is built:
+
+```
+Telegram ──> api/telegram.ts            thin adapter: checks the secret, reads the text, sends the reply
+               └─> shared/bot/handle-command.ts   the "brain": channel-neutral, no fetch, no settings
+                     └─> api/_bot/get-data.ts      calls the app's own GET /api/data
+                           └─> /api/data           the same URL and 5-minute cache the web app uses
+```
+
+The bot never imports the data.gov.sg fetching code in `api/_lib/` (a test enforces this). Another chat app (for example WhatsApp) would need only a new thin adapter next to `api/telegram.ts`.
+
+Settings, in Vercel only (placeholders in `.env.example`; never commit real values):
+
+| Variable | Where | What |
+| --- | --- | --- |
+| `TELEGRAM_BOT_TOKEN` | Production, Preview | From BotFather; used only to send replies |
+| `TELEGRAM_WEBHOOK_SECRET` | Production, Preview | Any long random string; the same one is given to Telegram when registering the webhook |
+| `APP_BASE_URL` | Production | `https://sg-data-api.vercel.app` |
+
+Preview deployments find their own address through `VERCEL_URL`, and get past Deployment Protection with `VERCEL_AUTOMATION_BYPASS_SECRET`; Vercel provides both once "Protection Bypass for Automation" is turned on in the project's Deployment Protection settings.
+
+Telegram sends a bot's messages to one webhook address at a time. Register (or move) it from your own terminal, never pasting the token into a chat:
+
+```sh
+curl -s "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://<host>/api/telegram" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>" \
+  -d 'allowed_updates=["message"]'
+curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"   # check it
+```
+
+The bot can't be reached from `npm run dev` (Telegram needs a public HTTPS address); locally it is covered by the tests.
+
 ## How to add a dataset
 
-There are exactly two serverless functions, however many datasets exist. For a dataset in data.gov.sg's **real-time API family** (`https://api-open.data.gov.sg/v2/real-time/api/...`), touch only these files:
+The web app has exactly two serverless functions, however many datasets exist (the Telegram bot adds a third, `api/telegram.ts`). For a dataset in data.gov.sg's **real-time API family** (`https://api-open.data.gov.sg/v2/real-time/api/...`), touch only these files:
 
 1. `shared/datasets/<id>.ts`: the definition, built with `defineDataset`. It holds `id`, `title`, `category`, `agency`, `datasetId`, `datasetPage`, `source: { kind: "realtime", path: "/<path>" }`, `params` (one validator per allowed query parameter), the zod `schema` of one success page, `mergePages`, `normalize`, `isEmpty`, `notFoundMessage` and `cacheSeconds`. It contains types and pure functions only: no `process.env`, no `fetch`, no secrets.
 2. One line in `shared/datasets/registry.ts`.
@@ -156,5 +214,6 @@ GitHub holds the repository and Vercel deploys from it:
 2. Keep the detected **Vite** framework preset (build `npm run build`, output `dist`).
 3. Set the Node.js version to **24.x**.
 4. Optionally, add `DATAGOV_API_KEY` under Environment Variables for Production and Preview.
+5. For the Telegram bot, add its settings and register the webhook (see "Telegram bot" above).
 
 Nothing else needs configuring. `api/` is detected automatically, and successful replies are cached at Vercel's CDN, so repeat visits don't spend data.gov.sg's rate limit. Once deployed, open `/api/health` to check the deployment without opening the app.

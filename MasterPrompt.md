@@ -1,13 +1,26 @@
-MASTER PROMPT · SG Weather · new app that reads data.gov.sg directly, starting with PM2.5
-Paste into Claude Code, opened in the empty folder that will become the new GitHub repository.
+MASTER PROMPT · SG Weather · web app + Telegram bot (v2)
 
-ROLE: You are a senior full-stack developer starting a new project from an empty folder: a mobile-first Vite + React + TypeScript web app with two Vercel serverless functions in api/, kept in GitHub and deployed by Vercel from GitHub. Claude Code, git and the files in this folder are your only tools; Vercel settings are changed by me.
+This is the project's only live brief. The original web-app-only brief is kept for history at docs/archive/MasterPrompt-v1.md. Do not follow it. Where this brief and Context.md differ, the newer Context.md entry wins.
+
+ROLE: You are a senior full-stack developer helping a non-developer product manager build a hobby learning project. Explain things in plain English. Claude Code, git and the files in this repo are your only tools; Vercel, GitHub settings and Telegram's BotFather are changed by me.
+
+GOAL: SG Weather has two interfaces that share one data layer:
+  1. The web app (live in production). It must keep working throughout.
+  2. A chat interface, starting with Telegram.
+  Phase 1: the bot answers fixed commands. No AI or LLM.
+  Phase 2: Claude becomes the bot's brain (planned later, not built now).
+  Phase 3: possibly add another chat app, such as WhatsApp. Adding it must mean writing one new thin adapter, with no change to the brain, the data path or the web app.
+
+PART A · WEB APP
+The original brief, word for word, except where marked "(amended in v2)". It describes how the web app was first built; the app now exists, so read it as the rules the web app keeps following.
+
+STACK (from the v1 ROLE line, amended in v2): The web app is a mobile-first Vite + React + TypeScript app with one Vercel serverless function per interface in api/ (api/data.ts and api/health.ts for the web app, plus one per chat app), kept in GitHub and deployed by Vercel from GitHub. Claude Code, git and the files in this folder are your only tools; Vercel settings are changed by me.
 
 GOAL: Build a mobile-first weather app called SG Weather that shows Singapore's 1-hour PM2.5 readings by region, fetched by the app's own server code straight from the data.gov.sg real-time API (no MCP server, no third-party wrapper, nothing bundled or invented), built around a dataset registry so that any other data.gov.sg dataset, weather or not, can be added later as one registry entry plus one screen. Keep a written record of every change and every error from the first commit.
 
 OUTPUT:
  1) Project records, before any code.
-    a) Save this entire prompt, unchanged, as MasterPrompt.md at the project root. Never edit it afterwards; new or changed instructions go into Context.md.
+    a) Save this entire prompt, unchanged, as MasterPrompt.md at the project root. (amended in v2) MasterPrompt.md is replaced only when I approve a new version; the old one moves to docs/archive/. All other new or changed instructions go into Context.md.
     b) Create Context.md with the sections "Deployment & Environment", "Data Sources", "Datasets", "UI", "Decisions" and "Git & Release Workflow". Every entry is one bullet starting with the Singapore date as [YYYY-MM-DD]. Add an entry whenever I give new context or a new instruction, and whenever a change alters what the app shows, how it behaves, or how it is built or deployed, in the same commit as that change. When an entry replaces an earlier one, keep the old one, append "(superseded [YYYY-MM-DD], see below)" to it, and say in the new entry what it supersedes. Seed it with the decisions in this prompt.
     c) Create error_log.txt with one line per error: [YYYY-MM-DD] <Kind> Error: <what happened, with the exact message, HTTP status or failing command> (Resolved: <fix> | Open: <next step> | Not a code error: <why>). Kind is one of Build, Type, Test, API, Deploy, Git, Tool, Display, Bug. Log every error, not only bugs in the app: failed tests, type errors, failed commands, git and push failures, permission or tooling failures, and upstream API failures seen during development. When a logged error is fixed later, update that line's status in place instead of adding a new line.
     d) Never write a key, token or secret into MasterPrompt.md, Context.md, error_log.txt, README.md or any other file.
@@ -18,7 +31,7 @@ OUTPUT:
     dependencies: react ^19.3.1, react-dom ^19.3.1, zod ^4.6.7. devDependencies: vite ^8.3.4, @vitejs/plugin-react ^6.1.2, typescript ^7.0.2, vitest ^5.0.4, @types/node, @types/react, @types/react-dom. Nothing else without asking me first, and no @vercel/node. Type both handlers with IncomingMessage and ServerResponse from node:http, so the same file runs on Vercel and inside the Vite dev server.
     tsconfig.json: strict, "moduleResolution": "bundler", "jsx": "react-jsx", one config covering src/, api/, shared/ and tests/. Write every relative import in api/ and shared/ with a .js extension (import { registry } from "../shared/datasets/registry.js"), because Vercel runs api/ as Node ES modules and those need the extension; TypeScript resolves the .js to the .ts file.
     .gitignore: node_modules, dist, .vercel, .env and .env.* except !.env.example. .env.example holds only DATAGOV_API_KEY= under a comment saying it is optional.
- 3) Folder layout. Vercel turns every file in api/ into a public URL unless its file or folder name starts with an underscore, and the Hobby plan caps a deployment at 12 functions, so there are exactly two functions however many datasets are added:
+ 3) Folder layout. Vercel turns every file in api/ into a public URL unless its file or folder name starts with an underscore, and the Hobby plan caps a deployment at 12 functions, so there are exactly two functions however many datasets are added (amended in v2: the web app keeps exactly these two; each chat app adds one function of its own, api/telegram.ts now and api/whatsapp.ts in Phase 3, which keeps the total well under 12; adding any new function needs my approval):
     api/data.ts: GET /api/data?dataset=<id>&<that dataset's parameters>
     api/health.ts: GET /api/health
     api/_lib/: upstream fetch, pagination, error mapping and JSON response helpers. Server only; the only place that reads process.env.
@@ -91,7 +104,7 @@ OUTPUT:
     After the first Vercel production deploy, make every change on a branch, open a pull request into main, and merge only when npm run check passes, the Vercel preview deploy is green, and I have tested the preview. Merge as soon as a finished task meets those three conditions. Record this workflow in Context.md.
  14) Finish. Run npm run check. Start npm run dev and request /api/health, /api/data?dataset=pm25, /api/data?dataset=pm25&date=<yesterday in SGT>, /api/data?dataset=pm25&date=bad, /api/data?dataset=nope and a POST to /api/data, and confirm each status and body. If data.gov.sg cannot be reached from your environment, log that in error_log.txt as "Not a code error" and say so; don't treat the fixtures as proof the live call works. Then report what was built, what passed, what failed, and anything I must do in GitHub or Vercel.
 
-GUARDRAILS: Read-only: the app only reads public data; nothing writes, sends, deletes or spends. No database, no login, no analytics, no cookies. No fallbacks: a failed call is shown as a failure, never replaced with bundled, sample, cached-in-browser or made-up values, and no screen ever shows a reading data.gov.sg did not return for the current query. The API key is optional; read it only from process.env.DATAGOV_API_KEY on the server; never send it to the browser, never put it in a URL, a response, a log, a comment or any file; never create a variable whose name starts with VITE_. No new npm packages beyond step 2 without asking me first. Never skip, disable or delete a test to get a green check.
+GUARDRAILS: Read-only: the app only reads public data; nothing writes, deletes or spends. (amended in v2) The only thing ever sent is a chat bot's reply to the chat that asked. No database, no login, no analytics, no cookies. No fallbacks: a failed call is shown as a failure, never replaced with bundled, sample, cached-in-browser or made-up values, and no screen ever shows a reading data.gov.sg did not return for the current query. The API key is optional; read it only from process.env.DATAGOV_API_KEY on the server; never send it to the browser, never put it in a URL, a response, a log, a comment or any file; never create a variable whose name starts with VITE_. (amended in v2) TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET follow the same rules: server only, from process.env, never in a file, URL, response, log or chat. No new npm packages beyond step 2 without asking me first. Never skip, disable or delete a test to get a green check.
 
 CONTEXT: GitHub holds the repository; Vercel deploys from it. Vercel setup, which I do: import the GitHub repository, keep the detected Vite framework preset (build npm run build, output dist), set Node 24.x, and optionally add DATAGOV_API_KEY under Environment Variables for Production and Preview. Nothing else needs configuring; api/ is detected automatically. data.gov.sg rate-limits requests made without a key, answering HTTP 429 with code 24; that is why responses are cached at Vercel's CDN, nothing retries automatically, and the key is supported. The PM2.5 endpoint and dataset are listed in step 4. Future datasets may come from anywhere on data.gov.sg, not only weather.
 
@@ -119,3 +132,90 @@ APPENDIX: a real reply from GET https://api-open.data.gov.sg/v2/real-time/api/pm
   },
   "errorMsg": ""
 }
+
+PART B · TELEGRAM BOT
+
+B0. KEEP THE WEB APP UP
+    All bot work happens on a branch. Do not change how /api/data, /api/health or any screen behaves. Production only changes when I merge a tested pull request.
+
+B1. HOW THE PIECES CONNECT
+    Web app (browser) ──┐                    Telegram
+                        │                       │
+                        │          api/telegram.ts  (thin: receive, reply)
+                        │                       │
+                        │     shared/bot/handle-command.ts  (the "brain":
+                        │      pure, knows nothing about Telegram)
+                        │                       │
+                        │     api/_bot/ data helper  (calls the app's own
+                        │      GET /api/data URL)
+                        v                       v
+                   api/data.ts   ← Vercel's 5-minute CDN cache sits here
+                        v
+           shared data code: api/_lib/ + shared/datasets/
+                        v
+                   data.gov.sg
+
+    - The bot gets data ONLY by calling /api/data over HTTP. Neither api/telegram.ts nor the brain imports the fetching code in api/_lib/.
+    - The brain is pure: no fetch, no process.env. It is given a "get data" function and returns a channel-neutral reply (plain text plus simple structure), which the adapter turns into a Telegram message.
+    - Why: web and bot share one cache, so the bot never spends data.gov.sg's rate limit on top of the web app's.
+    - The helper needs the app's own address as a setting (an env var such as APP_BASE_URL). On preview deployments, Vercel's Deployment Protection blocks the bot calling its own /api/data, so previews also need Vercel's protection-bypass secret (an env var, never in a file).
+
+B2. STEP 0: READ AND PLAN, THEN WAIT
+    Read MasterPrompt.md, Context.md, KnownIssues.md and the existing code. Show me a plan: the files to add, the env vars, and the manual steps. Wait for "go" before writing any bot code.
+
+B3. COMMANDS (Phase 1)
+    /start, /help    what the bot does and the list of commands
+    /psi [region]    latest 24-hour PSI
+    /pm25 [region]   latest 1-hour PM2.5 (µg/m³)
+    - Commands and region names work in any capitalisation.
+    - No region given: list all five regions.
+    - Unknown region: say so and list the valid ones.
+    - Unknown command or plain chat text: reply with the help text.
+    - Each reading shows the value, its band name and the health recommendation, taken from the existing band files (never copied).
+    - The reading time is in Singapore time, in the same format as the web app.
+    - A missing value shows "No reading".
+    - Every data reply ends with "Data from NEA via data.gov.sg. Not medical advice."
+    - PM2.5 is never called PSI.
+
+B4. ARCHITECTURE RULES
+    - Brain and channel are separate: Telegram-specific code lives only in api/telegram.ts (and its small helpers).
+    - Reuse the existing band, region and time code; never copy it.
+    - No new npm packages: call Telegram's Bot API with plain fetch.
+    - Phase 3 test: adding WhatsApp must need only a new api/whatsapp.ts adapter. If a design choice would break that, stop and ask me.
+
+B5. SECURITY
+    - Secrets live only in environment variables: TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET (plus APP_BASE_URL and the preview bypass secret from B1). Add blank placeholders to .env.example. Never commit real values and never print them in chat.
+    - The webhook is registered with a secret_token. api/telegram.ts rejects any request without the matching X-Telegram-Bot-Api-Secret-Token header, and anything that isn't a POST.
+    - Ignore anything that isn't a plain text message.
+    - Never show internal error details to users. Reply "I couldn't fetch that right now, please try again."
+    - Always return HTTP 200 to Telegram quickly, so it doesn't retry.
+
+B6. QUALITY
+    - Tests: each command, region matching, bad region, missing value, a failed /api/data call, a wrong or missing secret header, a non-POST request, and no secret ever appearing in a reply or log.
+    - Tests fake the HTTP calls to /api/data and to Telegram.
+    - Run npm run check before every commit.
+    - Record changes in Context.md and errors in error_log.txt.
+    - Add a "Telegram bot" section to CLAUDE.md and README.md.
+
+B7. GIT
+    - Work on a branch called telegram-bot. Never push to main.
+    - Commit in small, working steps.
+    - Open a pull request into main with a plain-English description.
+    - Merge only when npm run check passes, the Vercel preview is green, and I have tested the bot.
+
+B8. MANUAL STEPS (done by me; Claude explains each one)
+    1. Create the bot in BotFather and get its token.
+    2. In Vercel, add TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET and APP_BASE_URL, plus the protection-bypass secret for previews.
+    3. Register the webhook with Telegram, using the secret.
+    4. Test the bot from my phone.
+    5. Check Deployment Protection settings for previews.
+
+B9. DONE CHECKLIST
+    - Web app unchanged and working in production.
+    - The bot gets data only via /api/data; api/telegram.ts and the brain do not import the fetching code.
+    - All commands work, including the error cases in B3.
+    - No secret in any file, reply or log.
+    - npm run check is green; Context.md, error_log.txt, README.md and CLAUDE.md are updated.
+
+B10. FINISH
+    Tell me what was built, what passed, what failed, and every manual step I still need to do.

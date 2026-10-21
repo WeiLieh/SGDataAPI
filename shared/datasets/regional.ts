@@ -102,7 +102,8 @@ export interface RegionalReading {
   values: Record<string, number | null>;
 }
 
-const REGION_ORDER = ["central", "north", "south", "east", "west"];
+/** The five regions in display order; also the regions the chat bot accepts. */
+export const REGION_ORDER: readonly string[] = ["central", "north", "south", "east", "west"];
 
 export function regionKey(name: string): string {
   return name.trim().toLowerCase();
