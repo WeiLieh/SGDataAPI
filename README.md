@@ -8,7 +8,7 @@ A **PSI** tab shows the latest 24-hour Pollutant Standards Index (PSI, an index 
 
 Datasets live in a registry, so more data.gov.sg datasets (weather or not) can be added later as one registry entry plus one screen.
 
-The brief is in `MasterPrompt.md`. Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
+The brief is in `MasterPrompt.md` (the original web-app-only brief is archived in `docs/archive/`). Every later instruction and decision is in `Context.md`, and errors are in `error_log.txt`.
 
 ## Data source and licence
 
