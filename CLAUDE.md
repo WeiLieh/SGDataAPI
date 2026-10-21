@@ -12,3 +12,4 @@
 8. No new npm packages beyond those listed in MasterPrompt.md step 2 without asking the owner. npm only; `package-lock.json` is the only lockfile.
 9. No fallbacks: a failed call is shown as a failure, never replaced by bundled, sample, browser-cached or invented values.
 10. Git: follow "Git & Release Workflow" in Context.md (branch + pull request into main once the app is live on Vercel).
+11. **Telegram bot** (Part B of MasterPrompt.md): `api/telegram.ts` is a thin adapter; the brain in `shared/bot/` stays channel-neutral (no `fetch`, no `process.env`); the bot gets data only through the app's own `GET /api/data` (`api/_bot/get-data.ts`) and never imports the fetching code in `api/_lib/` (tests enforce both). Replies never show internal error details. A new chat app means a new thin adapter only; adding any serverless function needs the owner's approval.
